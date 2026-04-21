@@ -1,14 +1,13 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { prisma } from "./lib/prisma";
+import { logger } from "hono/logger";
+
+import { events } from "./routes";
 
 const app = new Hono();
 
-app.get("/", async (c) => {
-  const res = await prisma.event.findMany();
-
-  return c.json({ events: res });
-});
+app.use(logger());
+app.route("/events", events);
 
 serve(
   {

@@ -1,7 +1,7 @@
 {
   "name": "go-ossetia-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend",
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -11,8 +11,13 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "ossetia",
+    "points",
+    "events"
+  ],
+  "author": "AmletixQ",
+  "homepage": "https://github.com/AmletixQ/go-ossetia-backend",
   "license": "ISC",
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
