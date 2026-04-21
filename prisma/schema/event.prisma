@@ -1,0 +1,40 @@
+model Event {
+  id String @id @default(cuid())
+
+  name        String
+  description String
+  images      String[]
+  date        DateTime
+
+  address   String
+  latitude  Float
+  longitude Float
+
+  price  Float?
+  blocks Json?
+
+  minAge Int @default(0) @map("min_age")
+  maxAge Int @default(100) @map("max_age")
+
+  categories EventCategory[]
+  users      User[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("events")
+}
+
+enum EventCategory {
+  REST
+  SPORT
+  MUSIC
+  DANCE
+  GAMES
+  BOOKS
+  TRAVEL
+  TALKS
+  NATURE
+
+  @@map("event_category")
+}
