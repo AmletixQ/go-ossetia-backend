@@ -1,6 +1,6 @@
 services:
   postgres:
-    container_name: prisma-course
+    container_name: go-ossetia-backend
     image: postgres:17
     ports:
       - '5432:5432'
