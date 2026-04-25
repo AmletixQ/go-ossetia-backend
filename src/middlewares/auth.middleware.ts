@@ -1,24 +1,43 @@
 import { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
-import { ResponseFactory } from "../utils/response-factory";
-
 import * as jwt from "jsonwebtoken";
 
-export default async function authMiddleware(ctx: Context, next: Next) {
-  const token = getCookie(ctx, "auth-token");
-  if (!token) return ResponseFactory.unauthorized(ctx);
+import { ResponseFactory } from "../utils/response-factory";
+import { Role } from "../generated/prisma/enums";
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET_TOKEN!) as {
-      userId: string;
-    };
+export default function auth(allowedRoles: Role | Role[]) {
+  return async (ctx: Context, next: Next) => {
+    const token = getCookie(ctx, "auth-token");
+    if (!token) return ResponseFactory.unauthorized(ctx);
 
-    ctx.set("userId", decoded.userId);
-    await next();
-  } catch (err) {
-    return ResponseFactory.notFound(
-      ctx,
-      "Невалидный токен. Перезайдите в приложение",
-    );
-  }
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET_TOKEN!) as {
+        userId: string;
+        role: Role;
+      };
+
+      ctx.set("userId", decoded.userId);
+      ctx.set("userRole", decoded.role);
+
+      if (allowedRoles) {
+        const roles = Array.isArray(allowedRoles)
+          ? allowedRoles
+          : [allowedRoles];
+
+        if (!roles.includes(decoded.role)) {
+          return ResponseFactory.forbidden(
+            ctx,
+            "Недостаточно прав для доступа",
+          );
+        }
+      }
+
+      await next();
+    } catch (err) {
+      return ResponseFactory.notFound(
+        ctx,
+        "Невалидный токен. Перезайдите в приложение",
+      );
+    }
+  };
 }

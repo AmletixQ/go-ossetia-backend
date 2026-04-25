@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import { hash, verify } from "argon2";
 import z from "zod";
+import { deleteCookie, setCookie } from "hono/cookie";
 
 import * as jwt from "jsonwebtoken";
 
 import { validator } from "../lib/validator";
 import { prisma } from "../lib/prisma";
 import { ResponseFactory } from "../utils/response-factory";
-import { deleteCookie, setCookie } from "hono/cookie";
 
 export const auth = new Hono();
 
@@ -40,9 +40,10 @@ auth.post(
     if (!isValidPassword)
       return ResponseFactory.unauthorized(ctx, "Wrong password");
 
-    const token = await jwt.sign(
+    const token = jwt.sign(
       {
         userId: isExistUser.id,
+        role: isExistUser.role,
       },
       process.env.JWT_SECRET_TOKEN!,
       {
