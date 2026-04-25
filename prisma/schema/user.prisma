@@ -8,8 +8,10 @@ model User {
   lastName  String @map("second_name")
   age       Int?
 
-  favourites Event[]
+  favourites Event[] @relation("EventsUsers")
   review     Review?
+
+  events Event[] @relation("EventsOwner")
 
   role Role @default(USER)
 

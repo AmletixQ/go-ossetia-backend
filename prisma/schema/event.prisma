@@ -17,7 +17,11 @@ model Event {
   maxAge Int @default(100) @map("max_age")
 
   categories EventCategory[]
-  users      User[]
+  users      User[] @relation(name: "EventsUsers")
+
+  owner User @relation(fields: [ownerId], references: [id], name: "EventsOwner")
+  ownerId String
+  
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @default(now()) @map("updated_at")
