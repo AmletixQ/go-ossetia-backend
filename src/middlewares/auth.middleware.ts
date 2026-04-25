@@ -4,9 +4,10 @@ import * as jwt from "jsonwebtoken";
 
 import { ResponseFactory } from "../utils/response-factory";
 import { Role } from "../generated/prisma/enums";
+import { AppVariables } from "../types/hono";
 
-export default function auth(allowedRoles: Role | Role[]) {
-  return async (ctx: Context, next: Next) => {
+export default function auth(allowedRoles?: Role | Role[]) {
+  return async (ctx: Context<{ Variables: AppVariables }>, next: Next) => {
     const token = getCookie(ctx, "auth-token");
     if (!token) return ResponseFactory.unauthorized(ctx);
 
