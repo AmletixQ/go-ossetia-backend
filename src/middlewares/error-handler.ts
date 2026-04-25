@@ -4,6 +4,8 @@ import { ResponseFactory } from "../utils/response-factory";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 
 export const errorHandler: ErrorHandler = (err, ctx) => {
+  console.error(err);
+  
   if (err instanceof ZodError) {
     console.log("Handler error");
     return ResponseFactory.badRequest(ctx, "Validation failed");

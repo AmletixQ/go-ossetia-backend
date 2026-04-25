@@ -6,5 +6,8 @@ model Review {
 
   rewiew String
 
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @default(now()) @map("updated_at")
+
   @@map("reviews")
 }
