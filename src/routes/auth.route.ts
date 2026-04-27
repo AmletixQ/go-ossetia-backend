@@ -168,6 +168,13 @@ auth.post(
     if (!isVerifyTokenExists)
       return ResponseFactory.notFound(ctx, "Код для верификации не найден");
 
+    if (new Date() > isVerifyTokenExists.expiresAt) {
+      await prisma.verificationToken.delete({
+        where: { email },
+      });
+      return ResponseFactory.unauthorized(ctx, "Код для верификации устарел");
+    }
+
     if (isVerifyTokenExists.token !== code)
       return ResponseFactory.unauthorized(ctx, "Неправильный код верификации");
 
