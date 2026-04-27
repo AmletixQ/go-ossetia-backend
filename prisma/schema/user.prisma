@@ -4,6 +4,8 @@ model User {
   email    String @unique
   password String
 
+  isEmailVerified Boolean @default(false) @map("is_email_verified")
+
   firstName String @map("first_name")
   lastName  String @map("second_name")
   age       Int?
@@ -16,9 +18,22 @@ model User {
   role Role @default(USER)
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @default(now()) @map("updated_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@map("users")
+}
+
+model VerificationToken {
+  id String @id @default(cuid())
+
+  email     String
+  token     String
+  expiresAt DateTime @map("expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([email])
+  @@map("verification_tokens")
 }
 
 enum Role {
