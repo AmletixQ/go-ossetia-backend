@@ -7,7 +7,10 @@ import * as jwt from "jsonwebtoken";
 
 import { validator } from "../lib/validator";
 import { prisma } from "../lib/prisma";
+import { sendVerificationEmail } from "../lib/email";
+
 import { ResponseFactory } from "../utils/response-factory";
+import generateOTP from "../utils/generate-otp";
 
 export const auth = new Hono();
 
@@ -97,18 +100,85 @@ auth.post(
         "Пользователь с таким email-адресом уже существует",
       );
 
+    const otp = generateOTP(6);
     const hashedPassword = await hash(password);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          firstName,
+          lastName,
+        },
+      });
+
+      await tx.verificationToken.deleteMany({ where: { email } });
+
+      await tx.verificationToken.create({
+        data: {
+          email,
+          token: otp,
+          expiresAt,
+        },
+      });
+
+      return newUser;
     });
 
-    return ResponseFactory.success(ctx, user);
+    try {
+      await sendVerificationEmail(email, otp);
+    } catch (err) {
+      console.error("Ошибка отправки email:", err);
+
+      return ResponseFactory.internal(
+        ctx,
+        "Пользователь создан, но не удалось отправить email с подтверждением. Попробуйте позже.",
+      );
+    }
+
+    return ResponseFactory.success(ctx, {
+      message:
+        "Пользователь зарегистрирован. Проверьте почту и введите код подтверждения.",
+      userId: user.id,
+      email: user.email,
+    });
+  },
+);
+
+auth.post(
+  "/verify-email",
+  validator(
+    "json",
+    z.object({
+      email: z.email("Email-почта является обязательной"),
+      code: z
+        .string("Код верификации является обязательным")
+        .length(6, "Код верификации должен содержать 6 символов"),
+    }),
+  ),
+  async (ctx) => {
+    const { email, code } = ctx.req.valid("json");
+
+    const isVerifyTokenExists = await prisma.verificationToken.findUnique({
+      where: { email },
+    });
+
+    if (!isVerifyTokenExists)
+      return ResponseFactory.notFound(ctx, "Код для верификации не найден");
+
+    if (isVerifyTokenExists.token !== code)
+      return ResponseFactory.unauthorized(ctx, "Неправильный код верификации");
+
+    await prisma.user.update({
+      where: { email },
+      data: { isEmailVerified: true },
+    });
+
+    return ResponseFactory.success(ctx, {
+      message: "Email-почта успешно подтверждена",
+    });
   },
 );
 
