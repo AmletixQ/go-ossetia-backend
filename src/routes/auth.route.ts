@@ -178,9 +178,15 @@ auth.post(
     if (isVerifyTokenExists.token !== code)
       return ResponseFactory.unauthorized(ctx, "Неправильный код верификации");
 
-    await prisma.user.update({
-      where: { email },
-      data: { isEmailVerified: true },
+    await prisma.$transaction(async (tx) => {
+      await prisma.user.update({
+        where: { email },
+        data: { isEmailVerified: true },
+      });
+
+      await prisma.verificationToken.delete({
+        where: { email },
+      });
     });
 
     return ResponseFactory.success(ctx, {
