@@ -23,19 +23,6 @@ model User {
   @@map("users")
 }
 
-model VerificationToken {
-  id String @id @default(cuid())
-
-  email     String
-  token     String
-  expiresAt DateTime @map("expires_at")
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@unique([email])
-  @@map("verification_tokens")
-}
-
 enum Role {
   USER
   ADMIN
