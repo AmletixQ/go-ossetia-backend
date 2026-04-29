@@ -11,6 +11,11 @@ import { sendVerificationEmail } from "../lib/email";
 
 import { ResponseFactory } from "../utils/response-factory";
 import generateOTP from "../utils/generate-otp";
+import {
+  OTP_COOLDOWN_SECONDS,
+  OTP_EXPIRES_MINUTES,
+  OTP_MAX_ATTEMPTS,
+} from "../contants";
 
 export const auth = new Hono();
 
@@ -19,10 +24,10 @@ auth.post(
   validator(
     "json",
     z.object({
-      email: z.email("Email property is a required"),
+      email: z.email("Некорректный формат email-адреса"),
       password: z
-        .string("Password property is a required")
-        .min(8, "Password must be a least 8 characters"),
+        .string("Пароль является обязательным")
+        .min(8, "Пароль должен содержать минимум 8 символов"),
     }),
   ),
   async (ctx) => {
@@ -77,7 +82,7 @@ auth.post(
   validator(
     "json",
     z.object({
-      email: z.email("Email-адрес является обязательным"),
+      email: z.email("Некорректный формат email-адреса"),
       password: z
         .string("Пароль является обязательным")
         .min(8, "Пароль должен содержать больше 8 символов"),
@@ -102,7 +107,7 @@ auth.post(
 
     const otp = generateOTP(6);
     const hashedPassword = await hash(password);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRES_MINUTES);
 
     const user = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
@@ -114,13 +119,16 @@ auth.post(
         },
       });
 
-      await tx.verificationToken.deleteMany({ where: { email } });
+      await tx.token.deleteMany({
+        where: { email, type: "EMAIL_VERIFICATION" },
+      });
 
-      await tx.verificationToken.create({
+      await tx.token.create({
         data: {
           email,
           token: otp,
           expiresAt,
+          type: "EMAIL_VERIFICATION",
         },
       });
 
@@ -152,7 +160,7 @@ auth.post(
   validator(
     "json",
     z.object({
-      email: z.email("Email-почта является обязательной"),
+      email: z.email("Некорректный формат email-адреса"),
       code: z
         .string("Код верификации является обязательным")
         .length(6, "Код верификации должен содержать 6 символов"),
@@ -161,16 +169,21 @@ auth.post(
   async (ctx) => {
     const { email, code } = ctx.req.valid("json");
 
-    const isVerifyTokenExists = await prisma.verificationToken.findUnique({
-      where: { email },
+    const isVerifyTokenExists = await prisma.token.findUnique({
+      where: { email_type: { email, type: "EMAIL_VERIFICATION" } },
     });
 
     if (!isVerifyTokenExists)
       return ResponseFactory.notFound(ctx, "Код для верификации не найден");
 
     if (new Date() > isVerifyTokenExists.expiresAt) {
-      await prisma.verificationToken.delete({
-        where: { email },
+      await prisma.token.delete({
+        where: {
+          email_type: {
+            email,
+            type: "EMAIL_VERIFICATION",
+          },
+        },
       });
       return ResponseFactory.unauthorized(ctx, "Код для верификации устарел");
     }
@@ -184,13 +197,92 @@ auth.post(
         data: { isEmailVerified: true },
       });
 
-      await prisma.verificationToken.delete({
-        where: { email },
+      await prisma.token.delete({
+        where: { email_type: { email, type: "EMAIL_VERIFICATION" } },
       });
     });
 
     return ResponseFactory.success(ctx, {
-      message: "Email-почта успешно подтверждена",
+      message: "Email-адрес успешно подтвержден",
+    });
+  },
+);
+
+auth.post(
+  "/resend-verification-code",
+  validator("json", z.object({ email: z.email("Некорректный формат email") })),
+  async (ctx) => {
+    const { email } = ctx.req.valid("json");
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user)
+      return ResponseFactory.notFound(
+        ctx,
+        "Пользователь с таким email не существует",
+      );
+
+    if (user.isEmailVerified)
+      return ResponseFactory.badRequest(ctx, "Email уже подтвержден");
+
+    const existingToken = await prisma.token.findUnique({
+      where: { email_type: { email, type: "EMAIL_VERIFICATION" } },
+    });
+
+    if (existingToken && existingToken.attempts >= OTP_MAX_ATTEMPTS)
+      return ResponseFactory.tooManyRequests(
+        ctx,
+        "Превышено количество попыток. Попробуйте позже.",
+      );
+
+    const now = new Date();
+
+    if (existingToken?.lastSentAt) {
+      const secondPassed =
+        (now.getTime() - existingToken.lastSentAt.getTime()) / 1000;
+
+      if (secondPassed < OTP_COOLDOWN_SECONDS) {
+        const secondLeft = Math.ceil(OTP_COOLDOWN_SECONDS - secondPassed);
+
+        return ResponseFactory.tooManyRequests(
+          ctx,
+          `Повторная отправка возможна через ${secondLeft} секунд`,
+        );
+      }
+    }
+
+    const otp = generateOTP(6);
+    const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
+
+    await prisma.token.upsert({
+      where: { email_type: { email, type: "EMAIL_VERIFICATION" } },
+      update: {
+        token: otp,
+        expiresAt,
+        lastSentAt: now,
+        attempts: { increment: 1 },
+      },
+      create: {
+        email,
+        type: "EMAIL_VERIFICATION",
+        token: otp,
+        expiresAt,
+      },
+    });
+
+    try {
+      await sendVerificationEmail(email, otp);
+    } catch (err) {
+      console.error("Ошибка отправки email:", err);
+
+      return ResponseFactory.internal(
+        ctx,
+        "Не удалось отправить email с кодом подтверждения. Попробуйте позже.",
+      );
+    }
+
+    return ResponseFactory.success(ctx, {
+      message: "Новый код подтверждения отправлен на вашу почту",
     });
   },
 );
