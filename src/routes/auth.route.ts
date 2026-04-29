@@ -267,6 +267,17 @@ auth.post(
     const otp = generateOTP(6);
     const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
 
+    try {
+      await sendVerificationEmail(email, otp);
+    } catch (err) {
+      console.error("Ошибка отправки email:", err);
+
+      return ResponseFactory.internal(
+        ctx,
+        "Не удалось отправить email с кодом подтверждения. Попробуйте позже.",
+      );
+    }
+
     await prisma.token.upsert({
       where: { email_type: { email, type: "EMAIL_VERIFICATION" } },
       update: {
@@ -282,17 +293,6 @@ auth.post(
         expiresAt,
       },
     });
-
-    try {
-      await sendVerificationEmail(email, otp);
-    } catch (err) {
-      console.error("Ошибка отправки email:", err);
-
-      return ResponseFactory.internal(
-        ctx,
-        "Не удалось отправить email с кодом подтверждения. Попробуйте позже.",
-      );
-    }
 
     return ResponseFactory.success(ctx, {
       message: "Новый код подтверждения отправлен на вашу почту",
