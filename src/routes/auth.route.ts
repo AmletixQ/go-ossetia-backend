@@ -15,6 +15,7 @@ import {
   OTP_COOLDOWN_SECONDS,
   OTP_EXPIRES_MINUTES,
   OTP_MAX_ATTEMPTS,
+  RESET_AFTER_HOURS,
 } from "../contants";
 
 export const auth = new Hono();
@@ -225,17 +226,29 @@ auth.post(
     if (user.isEmailVerified)
       return ResponseFactory.badRequest(ctx, "Email уже подтвержден");
 
-    const existingToken = await prisma.token.findUnique({
+    let existingToken = await prisma.token.findUnique({
       where: { email_type: { email, type: "EMAIL_VERIFICATION" } },
     });
 
-    if (existingToken && existingToken.attempts >= OTP_MAX_ATTEMPTS)
-      return ResponseFactory.tooManyRequests(
-        ctx,
-        "Превышено количество попыток. Попробуйте позже.",
-      );
-
     const now = new Date();
+
+    if (existingToken && existingToken.attempts >= OTP_MAX_ATTEMPTS) {
+      const hoursSinceLastSent =
+        now.getTime() - existingToken.lastSentAt.getTime() / (1000 * 60 * 60);
+
+      if (hoursSinceLastSent < RESET_AFTER_HOURS)
+        return ResponseFactory.tooManyRequests(
+          ctx,
+          "Превышено количество попыток. Попробуйте позже.",
+        );
+
+      existingToken = await prisma.token.update({
+        where: { email_type: { email, type: "EMAIL_VERIFICATION" } },
+        data: {
+          attempts: 0,
+        },
+      });
+    }
 
     if (existingToken?.lastSentAt) {
       const secondPassed =
