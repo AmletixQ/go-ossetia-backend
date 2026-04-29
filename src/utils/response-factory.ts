@@ -56,6 +56,13 @@ export class ResponseFactory {
     return this.error(ctx, message, 409, "CONFLICT");
   }
 
+  static tooManyRequests(
+    ctx: Context,
+    message: string = "Too many requests",
+  ): Response {
+    return this.error(ctx, message, 429, "TOO_MANY_REQUESTS");
+  }
+
   static internal(
     ctx: Context,
     message: string = "Internal server error",
