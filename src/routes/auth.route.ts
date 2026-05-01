@@ -7,7 +7,7 @@ import * as jwt from "jsonwebtoken";
 
 import { validator } from "../lib/validator";
 import { prisma } from "../lib/prisma";
-import { sendVerificationEmail } from "../lib/email";
+import { sendPasswordResetEmail, sendVerificationEmail } from "../lib/email";
 
 import { ResponseFactory } from "../utils/response-factory";
 import generateOTP from "../utils/generate-otp";
@@ -296,6 +296,103 @@ auth.post(
 
     return ResponseFactory.success(ctx, {
       message: "Новый код подтверждения отправлен на вашу почту",
+    });
+  },
+);
+
+auth.post(
+  "/forgot-password",
+  validator(
+    "json",
+    z.object({
+      email: z.email("Некорректный формат email"),
+    }),
+  ),
+  async (ctx) => {
+    const { email } = ctx.req.valid("json");
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+
+    if (!existingUser)
+      return ResponseFactory.notFound(
+        ctx,
+        "Пользователь с таким email не существует",
+      );
+
+    const otp = generateOTP(6);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    try {
+      await sendPasswordResetEmail(email, otp);
+    } catch (err) {
+      console.error("Ошибка отправки письма сброса пароля:", err);
+      return ResponseFactory.internal(
+        ctx,
+        "Не удалось отправить письмо. Попробуйте позже.",
+      );
+    }
+
+    await prisma.token.create({
+      data: {
+        email,
+        type: "PASSWORD_RESET",
+        token: otp,
+        expiresAt,
+      },
+    });
+
+    return ResponseFactory.success(ctx, {
+      message: "Инструкции по сбросу пароля отправлены на вашу почту",
+    });
+  },
+);
+
+auth.post(
+  "/reset-password",
+  validator(
+    "json",
+    z
+      .object({
+        email: z.email("Некорректный формат email"),
+        code: z
+          .string("Код подтверждения должен состоять из 6 символов")
+          .length(6, "Код подтверждения должен состоять из 6 символов"),
+        newPassword: z
+          .string("Пароль должен содержать минимум 6 символов")
+          .min(6, "Пароль должен содержать минимум 6 символов"),
+      })
+      .refine((data) => Number.isInteger(+data.code), {
+        message: "Код подтверждения должен состоять из 6 цифр",
+        path: ["code"],
+      }),
+  ),
+  async (ctx) => {
+    const { email, code, newPassword } = ctx.req.valid("json");
+
+    const existingToken = await prisma.token.findUnique({
+      where: { email_type: { email, type: "PASSWORD_RESET" } },
+    });
+
+    if (!existingToken)
+      return ResponseFactory.notFound(ctx, "Код для сброса пароля не найден");
+
+    if (existingToken.expiresAt < new Date())
+      return ResponseFactory.unauthorized(ctx, "Код для сброса пароля истек");
+
+    if (existingToken.token !== code)
+      return ResponseFactory.unauthorized(ctx, "Неверный код подтверждения");
+
+    const hashedPassword = await hash(newPassword);
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    return ResponseFactory.success(ctx, {
+      message: "Пароль успешно сброшен",
     });
   },
 );

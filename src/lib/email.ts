@@ -66,3 +66,23 @@ export async function sendVerificationEmail(to: string, otp: string) {
     html: htmlTemplate,
   });
 }
+
+export async function sendPasswordResetEmail(to: string, otp: string) {
+  const htmlTemplate = `
+    <div style="font-family: system-ui, sans-serif; max-width: 500px;">
+      <h2>Сброс пароля</h2>
+      <p>Вы запросили сброс пароля.</p>
+      <p>Ваш код подтверждения:</p>
+      <h1 style="font-size: 48px; letter-spacing: 8px; color: #dc2626;">${otp}</h1>
+      <p>Код действителен 10 минут.</p>
+      <p>Если вы не запрашивали сброс пароля — проигнорируйте это письмо.</p>
+    </div>
+  `;
+
+  await sendEmail({
+    to,
+    subject: `Код для сброса пароля — ${otp}`,
+    text: `Ваш код для сброса пароля: ${otp}. Действует 10 минут.`,
+    html: htmlTemplate,
+  });
+}
