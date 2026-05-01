@@ -41,13 +41,13 @@ auth.post(
     if (!isExistUser)
       return ResponseFactory.notFound(
         ctx,
-        "User with such email is not a found",
+        "Пользователь с таким email-адресом не найден",
       );
 
     const isValidPassword = await verify(isExistUser.password, password);
 
     if (!isValidPassword)
-      return ResponseFactory.unauthorized(ctx, "Wrong password");
+      return ResponseFactory.unauthorized(ctx, "Неверный пароль");
 
     const token = jwt.sign(
       {
