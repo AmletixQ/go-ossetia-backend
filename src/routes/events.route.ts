@@ -13,6 +13,7 @@ import {
   eventFiltersSchema,
   eventUpdateSchema,
 } from "../schemas/events";
+import { geocodeAddress, GeocodeResult } from "../lib/geocoder";
 
 export const events = new Hono();
 
@@ -46,16 +47,38 @@ events.post("/", auth(), validator("json", eventCreateSchema), async (ctx) => {
   const ownerId = ctx.get("userId");
   const eventData = ctx.req.valid("json");
 
+  let geocodeResult: GeocodeResult;
+
+  try {
+    geocodeResult = await geocodeAddress(eventData.address);
+  } catch (err: any) {
+    if (err.message.startsWith("ADDRESS_NOT_FOUND:")) {
+      const address = err.message.split(":")[1];
+      return ResponseFactory.badRequest(
+        ctx,
+        `Адрес "${address}" не найден. Пожалуйста, уточните адрес.`,
+      );
+    }
+
+    return ResponseFactory.internal(
+      ctx,
+      "Не удалось получить координаты по указанному адресу. Попробуйте позже.",
+    );
+  }
+
   const event = await prisma.event.create({
     data: {
       ...eventData,
-      latitude: 0,
-      longitude: 0,
+      address: geocodeResult.formattedAddress,
+      latitude: geocodeResult?.latitude || 0,
+      longitude: geocodeResult?.longitude || 0,
       ownerId: ownerId,
     },
   });
 
-  return ResponseFactory.success(ctx, { message: "Мероприятие успешно создано" });
+  return ResponseFactory.success(ctx, {
+    message: "Мероприятие успешно создано",
+  });
 });
 
 events.get("/my", auth(), async (ctx) => {
@@ -84,16 +107,42 @@ events.patch(
     const id = ctx.req.param("id");
     const eventData = ctx.req.valid("json");
 
-    const event = await prisma.event.update({
+    let geocodeResult: GeocodeResult | null = null;
+
+    if (eventData.address?.trim()) {
+      try {
+        geocodeResult = await geocodeAddress(eventData.address);
+      } catch (err: any) {
+        if (err.message.startsWith("ADDRESS_NOT_FOUND:")) {
+          const address = err.message.split(":")[1];
+          return ResponseFactory.badRequest(
+            ctx,
+            `Адрес "${address}" не найден. Пожалуйста, уточните адрес.`,
+          );
+        }
+
+        return ResponseFactory.internal(
+          ctx,
+          "Не удалось получить координаты по указанному адресу. Попробуйте позже.",
+        );
+      }
+    }
+
+    await prisma.event.update({
       where: { id },
       data: {
         ...eventData,
-        latitude: 0,
-        longitude: 0,
+        ...(eventData.address && {
+          address: geocodeResult?.formattedAddress || eventData.address,
+          latitude: geocodeResult?.latitude || 0,
+          longitude: geocodeResult?.longitude || 0,
+        }),
       },
     });
 
-    return ResponseFactory.success(ctx, { message: "Мероприятие успешно обновлено" });
+    return ResponseFactory.success(ctx, {
+      message: "Мероприятие успешно обновлено",
+    });
   },
 );
 
@@ -116,6 +165,8 @@ events.delete(
     if (!event)
       return ResponseFactory.notFound(ctx, "Мероприятие с таким ID не найдено");
 
-    return ResponseFactory.success(ctx, { message: "Мероприятие успешно удалено" });
+    return ResponseFactory.success(ctx, {
+      message: "Мероприятие успешно удалено",
+    });
   },
 );
