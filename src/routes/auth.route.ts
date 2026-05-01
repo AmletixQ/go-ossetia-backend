@@ -110,6 +110,17 @@ auth.post(
     const hashedPassword = await hash(password);
     const expiresAt = new Date(Date.now() + OTP_EXPIRES_MINUTES);
 
+    try {
+      await sendVerificationEmail(email, otp);
+    } catch (err) {
+      console.error("Ошибка отправки email:", err);
+
+      return ResponseFactory.internal(
+        ctx,
+        "Пользователь создан, но не удалось отправить email с подтверждением. Попробуйте позже.",
+      );
+    }
+
     const user = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
@@ -135,17 +146,6 @@ auth.post(
 
       return newUser;
     });
-
-    try {
-      await sendVerificationEmail(email, otp);
-    } catch (err) {
-      console.error("Ошибка отправки email:", err);
-
-      return ResponseFactory.internal(
-        ctx,
-        "Пользователь создан, но не удалось отправить email с подтверждением. Попробуйте позже.",
-      );
-    }
 
     return ResponseFactory.success(ctx, {
       message:
