@@ -310,14 +310,43 @@ auth.post(
   ),
   async (ctx) => {
     const { email } = ctx.req.valid("json");
+    const now = new Date();
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    let existingToken = await prisma.token.findUnique({
+      where: { email_type: { email, type: "PASSWORD_RESET" } },
+    });
 
-    if (!existingUser)
-      return ResponseFactory.notFound(
-        ctx,
-        "Пользователь с таким email не существует",
-      );
+    if (existingToken && existingToken.attempts >= OTP_MAX_ATTEMPTS) {
+      const hoursSinceLastSent =
+        (now.getTime() - existingToken.lastSentAt.getTime()) / (1000 * 60 * 60);
+
+      if (hoursSinceLastSent < RESET_AFTER_HOURS)
+        return ResponseFactory.tooManyRequests(
+          ctx,
+          "Превышено количество попыток. Попробуйте позже.",
+        );
+
+      existingToken = await prisma.token.update({
+        where: { email_type: { email, type: "PASSWORD_RESET" } },
+        data: {
+          attempts: 0,
+        },
+      });
+    }
+
+    if (existingToken?.lastSentAt) {
+      const secondPassed =
+        (now.getTime() - existingToken.lastSentAt.getTime()) / 1000;
+
+      if (secondPassed < OTP_COOLDOWN_SECONDS) {
+        const secondLeft = Math.ceil(OTP_COOLDOWN_SECONDS - secondPassed);
+
+        return ResponseFactory.tooManyRequests(
+          ctx,
+          `Повторная отправка возможна через ${secondLeft} секунд`,
+        );
+      }
+    }
 
     const otp = generateOTP(6);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -332,8 +361,15 @@ auth.post(
       );
     }
 
-    await prisma.token.create({
-      data: {
+    await prisma.token.upsert({
+      where: { email_type: { email, type: "PASSWORD_RESET" } },
+      update: {
+        attempts: { increment: 1 },
+        lastSentAt: now,
+        token: otp,
+        expiresAt,
+      },
+      create: {
         email,
         type: "PASSWORD_RESET",
         token: otp,
@@ -374,25 +410,38 @@ auth.post(
     });
 
     if (!existingToken)
-      return ResponseFactory.notFound(ctx, "Код для сброса пароля не найден");
+      return ResponseFactory.unauthorized(
+        ctx,
+        "Неверный или истекший код для сброса пароля",
+      );
 
-    if (existingToken.expiresAt < new Date())
+    if (existingToken.expiresAt < new Date()) {
+      await prisma.token.delete({
+        where: { email_type: { email, type: "PASSWORD_RESET" } },
+      });
       return ResponseFactory.unauthorized(ctx, "Код для сброса пароля истек");
+    }
 
     if (existingToken.token !== code)
       return ResponseFactory.unauthorized(ctx, "Неверный код подтверждения");
 
     const hashedPassword = await hash(newPassword);
 
-    await prisma.user.update({
-      where: { email },
-      data: {
-        password: hashedPassword,
-      },
+    await prisma.$transaction(async (ctx) => {
+      await prisma.user.update({
+        where: { email },
+        data: {
+          password: hashedPassword,
+        },
+      });
+
+      await prisma.token.delete({
+        where: { email_type: { email, type: "PASSWORD_RESET" } },
+      });
     });
 
     return ResponseFactory.success(ctx, {
-      message: "Пароль успешно сброшен",
+      message: "Пароль успешно изменен",
     });
   },
 );
