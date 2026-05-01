@@ -1,0 +1,26 @@
+model Token {
+  id String @id @default(cuid())
+
+  email String
+  token String
+  type  TokenType
+
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lastSentAt DateTime @default(now()) @map("last_sent_at")
+  attempts   Int      @default(1)
+
+  @@unique([email, type])
+  @@map("tokens")
+}
+
+enum TokenType {
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+  EMAIL_CHANGE
+  MAGIC_LINK
+  TWO_FACTOR
+
+  @@map("token_types")
+}
