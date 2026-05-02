@@ -1,5 +1,5 @@
-import { eventFiltersSchema } from "./event-filters.schema";
-import { eventCreateSchema } from "./event-create.schema";
-import { eventUpdateSchema } from "./event-update.schema";
+import { eventFiltersSchema } from "./filters.schema";
+import { eventCreateSchema } from "./create.schema";
+import { eventUpdateSchema } from "./update.schema";
 
 export { eventFiltersSchema, eventCreateSchema, eventUpdateSchema };
