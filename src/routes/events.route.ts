@@ -4,6 +4,11 @@ import { ResponseFactory } from "../utils/response-factory";
 
 import { prisma } from "../lib/prisma";
 import { validator } from "../lib/validator";
+import {
+  AddressNotFoundError,
+  geocodeAddress,
+  type GeocodeResult,
+} from "../lib/geocoder";
 
 import { checkResourceOwnership } from "../middlewares/owner-check";
 import auth from "../middlewares/auth.middleware";
@@ -13,7 +18,6 @@ import {
   eventFiltersSchema,
   eventUpdateSchema,
 } from "../schemas/events";
-import { geocodeAddress, GeocodeResult } from "../lib/geocoder";
 
 export const events = new Hono();
 
@@ -52,13 +56,11 @@ events.post("/", auth(), validator("json", eventCreateSchema), async (ctx) => {
   try {
     geocodeResult = await geocodeAddress(eventData.address);
   } catch (err: any) {
-    if (err.message.startsWith("ADDRESS_NOT_FOUND:")) {
-      const address = err.message.split(":")[1];
+    if (err instanceof AddressNotFoundError)
       return ResponseFactory.badRequest(
         ctx,
-        `Адрес "${address}" не найден. Пожалуйста, уточните адрес.`,
+        `Адрес "${eventData.address}" не найден. Пожалуйста, уточните адрес.`,
       );
-    }
 
     return ResponseFactory.internal(
       ctx,
@@ -112,14 +114,12 @@ events.patch(
     if (eventData.address?.trim()) {
       try {
         geocodeResult = await geocodeAddress(eventData.address);
-      } catch (err: any) {
-        if (err.message.startsWith("ADDRESS_NOT_FOUND:")) {
-          const address = err.message.split(":")[1];
+      } catch (err) {
+        if (err instanceof AddressNotFoundError)
           return ResponseFactory.badRequest(
             ctx,
-            `Адрес "${address}" не найден. Пожалуйста, уточните адрес.`,
+            `Адрес "${eventData.address}" не найден. Пожалуйста, уточните адрес.`,
           );
-        }
 
         return ResponseFactory.internal(
           ctx,

@@ -7,6 +7,13 @@ export interface GeocodeResult {
   precision?: string;
 }
 
+export class AddressNotFoundError extends Error {
+  constructor(message?: string) {
+    super(message);
+    this.name = "AddressNotFoundError";
+  }
+}
+
 export async function geocodeAddress(address: string): Promise<GeocodeResult> {
   if (!address.trim()) throw new Error("Адрес не может быть пустым");
 
@@ -40,11 +47,12 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult> {
     const featureMember = data?.response?.GeoObjectCollection?.featureMember;
 
     if (!featureMember || featureMember.length === 0)
-      throw new Error(`ADDRESS_NOT_FOUND:${address}`);
+      throw new AddressNotFoundError(`Не удалось найти адрес: ${address}`);
 
     const feature = featureMember[0].GeoObject;
 
-    if (!feature?.Point?.pos) throw new Error(`ADDRESS_NOT_FOUND:${address}`);
+    if (!feature?.Point?.pos)
+      throw new AddressNotFoundError(`Не удалось найти адрес: ${address}`);
 
     const [lon, lat] = feature.Point.pos.split(" ").map(Number);
     const meta = feature.metaDataProperty?.GeocoderMetaData;
@@ -56,6 +64,7 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult> {
       precision: meta?.precision,
     };
   } catch (err: any) {
-    throw err;
+    if (err instanceof AddressNotFoundError) throw err;
+    throw new Error(`Ошибка геокодирования: ${err.message}`);
   }
 }
