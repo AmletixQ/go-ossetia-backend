@@ -1,17 +1,9 @@
 import { Hono } from "hono";
 
-import { ResponseFactory } from "../utils/response-factory";
-
-import { prisma } from "../lib/prisma";
-import { validator } from "../lib/validator";
-import {
-  AddressNotFoundError,
-  geocodeAddress,
-  type GeocodeResult,
-} from "../lib/geocoder";
-
-import { checkResourceOwnership } from "../middlewares/owner-check";
-import auth from "../middlewares/auth.middleware";
+import { ResponseFactory } from "../utils";
+import { prisma, validator } from "../lib";
+import { eventService } from "../services";
+import { auth, checkResourceOwnership } from "../middlewares";
 
 import {
   eventCreateSchema,
@@ -22,27 +14,9 @@ import {
 export const events = new Hono();
 
 events.get("/", validator("query", eventFiltersSchema), async (ctx) => {
-  const { page, limit, category, price, age, search, date } =
-    ctx.req.valid("query");
+  const filters = ctx.req.valid("query");
 
-  const events = await prisma.event.findMany({
-    where: {
-      price,
-      ...(category && { categories: { has: category } }),
-      ...(date && { date }),
-      ...(age && {
-        AND: {
-          minAge: { lte: age },
-          maxAge: { gte: age },
-        },
-      }),
-      ...(search && {
-        name: { contains: search, mode: "insensitive" },
-      }),
-    },
-    skip: (page - 1) * limit,
-    take: limit,
-  });
+  const events = await eventService.getFilteredEvents(filters);
 
   return ResponseFactory.success(ctx, events);
 });
@@ -51,32 +25,7 @@ events.post("/", auth(), validator("json", eventCreateSchema), async (ctx) => {
   const ownerId = ctx.get("userId");
   const eventData = ctx.req.valid("json");
 
-  let geocodeResult: GeocodeResult;
-
-  try {
-    geocodeResult = await geocodeAddress(eventData.address);
-  } catch (err: any) {
-    if (err instanceof AddressNotFoundError)
-      return ResponseFactory.badRequest(
-        ctx,
-        `Адрес "${eventData.address}" не найден. Пожалуйста, уточните адрес.`,
-      );
-
-    return ResponseFactory.internal(
-      ctx,
-      "Не удалось получить координаты по указанному адресу. Попробуйте позже.",
-    );
-  }
-
-  const event = await prisma.event.create({
-    data: {
-      ...eventData,
-      address: geocodeResult.formattedAddress,
-      latitude: geocodeResult?.latitude || 0,
-      longitude: geocodeResult?.longitude || 0,
-      ownerId: ownerId,
-    },
-  });
+  await eventService.createEvent({ ...eventData, ownerId });
 
   return ResponseFactory.success(ctx, {
     message: "Мероприятие успешно создано",
@@ -93,7 +42,7 @@ events.get("/my", auth(), async (ctx) => {
 events.get("/:id", async (ctx) => {
   const id = ctx.req.param("id");
 
-  const event = await prisma.event.findUnique({ where: { id } });
+  const event = await eventService.getEventById(id);
 
   if (!event)
     return ResponseFactory.notFound(ctx, "Мероприятие с таким ID не найдено");
@@ -109,36 +58,7 @@ events.patch(
     const id = ctx.req.param("id");
     const eventData = ctx.req.valid("json");
 
-    let geocodeResult: GeocodeResult | null = null;
-
-    if (eventData.address?.trim()) {
-      try {
-        geocodeResult = await geocodeAddress(eventData.address);
-      } catch (err) {
-        if (err instanceof AddressNotFoundError)
-          return ResponseFactory.badRequest(
-            ctx,
-            `Адрес "${eventData.address}" не найден. Пожалуйста, уточните адрес.`,
-          );
-
-        return ResponseFactory.internal(
-          ctx,
-          "Не удалось получить координаты по указанному адресу. Попробуйте позже.",
-        );
-      }
-    }
-
-    await prisma.event.update({
-      where: { id },
-      data: {
-        ...eventData,
-        ...(eventData.address && {
-          address: geocodeResult?.formattedAddress || eventData.address,
-          latitude: geocodeResult?.latitude || 0,
-          longitude: geocodeResult?.longitude || 0,
-        }),
-      },
-    });
+    await eventService.updateEvent(id, eventData);
 
     return ResponseFactory.success(ctx, {
       message: "Мероприятие успешно обновлено",
@@ -160,7 +80,7 @@ events.delete(
   async (ctx) => {
     const id = ctx.req.param("id");
 
-    const event = await prisma.event.delete({ where: { id } });
+    const event = await eventService.deleteEvent(id!);
 
     if (!event)
       return ResponseFactory.notFound(ctx, "Мероприятие с таким ID не найдено");
@@ -170,3 +90,9 @@ events.delete(
     });
   },
 );
+
+events.post("/:id/favorite");
+events.post("/:id/unfavorite");
+
+events.post("/:id/follow");
+events.post("/:id/unfollow");

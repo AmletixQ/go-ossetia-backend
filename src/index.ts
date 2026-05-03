@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 
 import { auth, events } from "./routes";
-import { errorHandler } from "./middlewares/error-handler";
+import { errorHandler } from "./middlewares";
 
 const app = new Hono();
 

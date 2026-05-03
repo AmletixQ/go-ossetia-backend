@@ -1,5 +1,5 @@
 import { createTransport, type SendMailOptions } from "nodemailer";
-import { EMAIL_TEMPLATES } from "../configs/email.config";
+import { EMAIL_TEMPLATES } from "../configs";
 
 interface EmailOptions {
   to: string | string[];

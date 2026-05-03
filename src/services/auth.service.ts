@@ -1,13 +1,13 @@
 import { hash, verify } from "argon2";
 
-import { prisma } from "../lib/prisma";
+import { prisma } from "../lib";
 
 import {
   BadRequestError,
   ConflictError,
   NotFoundError,
   UnauthorizedError,
-} from "../utils/http-errors";
+} from "../utils";
 
 import { User } from "../generated/prisma/client";
 import { tokenService } from "./token.service";

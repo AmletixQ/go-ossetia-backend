@@ -2,7 +2,8 @@ import { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
 import * as jwt from "jsonwebtoken";
 
-import { ResponseFactory } from "../utils/response-factory";
+import { ResponseFactory } from "../utils";
+
 import { Role } from "../generated/prisma/enums";
 import { AppVariables } from "../types/hono";
 

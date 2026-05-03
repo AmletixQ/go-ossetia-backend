@@ -1,6 +1,7 @@
 import { Context, Next } from "hono";
 import { Role } from "../generated/prisma/enums";
-import { ResponseFactory } from "../utils/response-factory";
+
+import { ResponseFactory } from "../utils";
 
 export function checkResourceOwnership(
   getResourceOwnerId: (ctx: Context) => Promise<string | undefined> | string,

@@ -1,15 +1,14 @@
 import { AUTH_CONFIG } from "../configs";
 import { TokenType } from "../generated/prisma/enums";
 
-import { sendPasswordResetEmail, sendVerificationEmail } from "../lib/email";
-import { prisma } from "../lib/prisma";
+import { prisma, sendPasswordResetEmail, sendVerificationEmail } from "../lib";
 
-import generateOTP from "../utils/generate-otp";
 import {
+  generateOTP,
   NotFoundError,
   TooManyRequestsError,
   UnauthorizedError,
-} from "../utils/http-errors";
+} from "../utils";
 
 interface TokenService {
   generateOrRefreshTokenAndSendEmail(
