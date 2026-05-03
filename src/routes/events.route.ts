@@ -1,20 +1,15 @@
 import { Hono } from "hono";
 
-import { ResponseFactory } from "../utils/response-factory";
-
-import { prisma } from "../lib/prisma";
-import { validator } from "../lib/validator";
-
-import { checkResourceOwnership } from "../middlewares/owner-check";
-import auth from "../middlewares/auth.middleware";
+import { ResponseFactory } from "../utils";
+import { prisma, validator } from "../lib";
+import { eventService } from "../services";
+import { auth, checkResourceOwnership } from "../middlewares";
 
 import {
   eventCreateSchema,
   eventFiltersSchema,
   eventUpdateSchema,
 } from "../schemas/events";
-
-import { eventService } from "../services/event.service";
 
 export const events = new Hono();
 
@@ -95,3 +90,9 @@ events.delete(
     });
   },
 );
+
+events.post("/:id/favorite");
+events.post("/:id/unfavorite");
+
+events.post("/:id/follow");
+events.post("/:id/unfollow");

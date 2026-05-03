@@ -4,11 +4,10 @@ import { deleteCookie, setCookie } from "hono/cookie";
 
 import * as jwt from "jsonwebtoken";
 
-import { validator } from "../lib/validator";
+import { validator } from "../lib";
+import { ResponseFactory } from "../utils";
+import { authService } from "../services";
 
-import { ResponseFactory } from "../utils/response-factory";
-
-import { authService } from "../services/auth.service";
 import {
   loginSchema,
   registerSchema,

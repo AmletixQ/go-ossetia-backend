@@ -8,14 +8,14 @@ import {
 
 import { EventModel } from "../generated/prisma/models";
 
-import { prisma } from "../lib/prisma";
+import { BadRequestError, InternalServerError } from "../utils";
+
 import {
   AddressNotFoundError,
   geocodeAddress,
   GeocodeResult,
-} from "../lib/geocoder";
-
-import { BadRequestError, InternalServerError } from "../utils/http-errors";
+  prisma,
+} from "../lib";
 
 interface EventService {
   getEvents(): Promise<EventModel[]>;

@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import z from "zod";
-import { ResponseFactory } from "../utils/response-factory";
+
+import { ResponseFactory } from "../utils";
 
 export function validator<T extends z.ZodType>(
   target: "json" | "query" | "param" | "form",

@@ -2,9 +2,7 @@ import { ErrorHandler } from "hono";
 import { ZodError } from "zod";
 
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
-
-import { ResponseFactory } from "../utils/response-factory";
-import { HttpError } from "../utils/http-errors";
+import { ResponseFactory, HttpError } from "../utils";
 
 export const errorHandler: ErrorHandler = (err, ctx) => {
   if (err instanceof HttpError) {
