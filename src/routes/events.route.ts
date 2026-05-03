@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 
 import { ResponseFactory } from "../utils/response-factory";
-import { BadRequestError } from "../utils/http-errors";
 
 import { prisma } from "../lib/prisma";
 import { validator } from "../lib/validator";
@@ -31,14 +30,7 @@ events.post("/", auth(), validator("json", eventCreateSchema), async (ctx) => {
   const ownerId = ctx.get("userId");
   const eventData = ctx.req.valid("json");
 
-  try {
-    await eventService.createEvent({ ...eventData, ownerId });
-  } catch (err) {
-    if (err instanceof BadRequestError) {
-      return ResponseFactory.badRequest(ctx, err.message);
-    }
-    return ResponseFactory.internal(ctx);
-  }
+  await eventService.createEvent({ ...eventData, ownerId });
 
   return ResponseFactory.success(ctx, {
     message: "Мероприятие успешно создано",
@@ -71,14 +63,7 @@ events.patch(
     const id = ctx.req.param("id");
     const eventData = ctx.req.valid("json");
 
-    try {
-      await eventService.updateEvent(id, eventData);
-    } catch (err) {
-      if (err instanceof BadRequestError)
-        return ResponseFactory.badRequest(ctx, err.message);
-
-      return ResponseFactory.internal(ctx);
-    }
+    await eventService.updateEvent(id, eventData);
 
     return ResponseFactory.success(ctx, {
       message: "Мероприятие успешно обновлено",

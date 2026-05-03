@@ -1,6 +1,11 @@
 import { Context } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
 
+export type ResponseFactoryMethod = Exclude<
+  keyof typeof ResponseFactory,
+  "prototype" | "error"
+>;
+
 export class ResponseFactory {
   static success<T>(
     ctx: Context,
@@ -43,7 +48,7 @@ export class ResponseFactory {
   ): Response {
     return this.error(ctx, message, 401, "UNAUTHORIZED");
   }
-
+  
   static forbidden(ctx: Context, message: string = "Forbidden"): Response {
     return this.error(ctx, message, 403, "FORBIDDEN");
   }
