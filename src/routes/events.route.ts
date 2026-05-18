@@ -113,5 +113,24 @@ events.post("/:id/unfavourite", auth(), async (ctx) => {
   });
 });
 
-events.post("/:id/follow");
-events.post("/:id/unfollow");
+events.post("/:id/follow", auth(), async (ctx) => {
+  const userId = ctx.get("userId");
+  const eventId = ctx.req.param("id");
+
+  await eventService.followEvent(eventId!, userId);
+
+  return ResponseFactory.success(ctx, {
+    message: "Вы подписались на мероприятие",
+  });
+});
+
+events.post("/:id/unfollow", auth(), async (ctx) => {
+  const userId = ctx.get("userId");
+  const eventId = ctx.req.param("id");
+
+  await eventService.unfollowEvent(eventId!, userId);
+
+  return ResponseFactory.success(ctx, {
+    message: "Вы отписались от мероприятия",
+  });
+});

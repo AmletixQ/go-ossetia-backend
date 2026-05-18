@@ -34,6 +34,9 @@ interface EventService {
 
   favoriteEvent(eventId: string, userId: string): Promise<void>;
   unfavoriteEvent(eventId: string, userId: string): Promise<void>;
+
+  followEvent(eventId: string, userId: string): Promise<void>;
+  unfollowEvent(eventId: string, userId: string): Promise<void>;
 }
 export const eventService: EventService = {
   getEvents: async () => await prisma.event.findMany(),
@@ -168,6 +171,48 @@ export const eventService: EventService = {
         where: { id: userId },
         data: {
           favouritedEvents: {
+            disconnect: { id: eventId },
+          },
+        },
+      }),
+    ]);
+  },
+
+  async followEvent(eventId, userId) {
+    await prisma.$transaction([
+      prisma.event.update({
+        where: { id: eventId },
+        data: {
+          followedUsers: {
+            connect: { id: userId },
+          },
+        },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          followingEvents: {
+            connect: { id: eventId },
+          },
+        },
+      }),
+    ]);
+  },
+
+  async unfollowEvent(eventId, userId) {
+    await prisma.$transaction([
+      prisma.event.update({
+        where: { id: eventId },
+        data: {
+          followedUsers: {
+            disconnect: { id: userId },
+          },
+        },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          followingEvents: {
             disconnect: { id: eventId },
           },
         },
