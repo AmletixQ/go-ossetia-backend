@@ -91,8 +91,27 @@ events.delete(
   },
 );
 
-events.post("/:id/favorite");
-events.post("/:id/unfavorite");
+events.post("/:id/favourite", auth(), async (ctx) => {
+  const userId = ctx.get("userId");
+  const eventId = ctx.req.param("id");
+
+  await eventService.favoriteEvent(eventId!, userId);
+
+  return ResponseFactory.success(ctx, {
+    message: "Мероприятие добавлено в избранное",
+  });
+});
+
+events.post("/:id/unfavourite", auth(), async (ctx) => {
+  const userId = ctx.get("userId");
+  const eventId = ctx.req.param("id");
+
+  await eventService.unfavoriteEvent(eventId!, userId);
+
+  return ResponseFactory.success(ctx, {
+    message: "Мероприятие удалено из избранного",
+  });
+});
 
 events.post("/:id/follow");
 events.post("/:id/unfollow");
