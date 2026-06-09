@@ -3,13 +3,15 @@
   "version": "1.0.0",
   "description": "Backend",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "prisma generate && node build.js",
     "start": "node dist/index.js",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "prisma:generate": "prisma generate",
+    "prisma:seed": "prisma db seed",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
   },
   "keywords": [
     "ossetia",
@@ -40,6 +42,7 @@
     "@types/node": "^25.6.0",
     "@types/nodemailer": "^8.0.0",
     "@types/pg": "^8.20.0",
+    "esbuild": "^0.28.0",
     "prisma": "^7.7.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"
