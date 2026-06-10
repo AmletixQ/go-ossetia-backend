@@ -16,7 +16,7 @@ export const errorHandler: ErrorHandler = (err, ctx) => {
   }
 
   if (err instanceof PrismaClientKnownRequestError) {
-    console.log("Prisma error");
+    console.log(`Prisma error [${err.code}]: ${err.message}`);
     if (err.code === "P2025") {
       return ResponseFactory.notFound(ctx, "Record is not found");
     }
