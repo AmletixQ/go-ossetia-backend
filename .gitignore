@@ -3,6 +3,7 @@ postgres*db
 prisma/migrations
 
 .env*
+!.env.example
 
 dist
 build
