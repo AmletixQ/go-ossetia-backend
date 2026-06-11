@@ -7,15 +7,14 @@ import { auth, events } from "./routes";
 import { errorHandler } from "./middlewares";
 import { HOME_TEMPLATE, OPEN_API_CONFIG } from "./configs";
 
-const app = new Hono();
-app.basePath("/api");
+const app = new Hono().basePath("/api");
 
 app.use(logger());
 app.onError(errorHandler);
 
 app.get("/", (ctx) => ctx.html(HOME_TEMPLATE));
 app.get("/doc", (ctx) => ctx.json(OPEN_API_CONFIG));
-app.get("/open-api", swaggerUI({ title: "Go Ossetia API", url: "/doc" }));
+app.get("/open-api", swaggerUI({ title: "Go Ossetia API", url: "/api/doc" }));
 
 app.route("/auth", auth);
 app.route("/events", events);
