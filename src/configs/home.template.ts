@@ -29,7 +29,7 @@ export const HOME_TEMPLATE = `
 <body>
     <header>
         <h1>Добро пожаловать в Go Ossetia!</h1>
-        <a class="api-docs-link" href="/open-api">Документация API</a>
+        <a class="api-docs-link" href="/api/open-api">Документация API</a>
     </header>
     <main>
         <section>
