@@ -1,6 +1,5 @@
 node_modules
 postgres*db
-prisma/migrations
 
 .env*
 !.env.example
