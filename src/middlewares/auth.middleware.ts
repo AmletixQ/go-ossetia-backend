@@ -1,6 +1,6 @@
 import { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 import { ResponseFactory } from "../utils";
 

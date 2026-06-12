@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import z from "zod";
 import { deleteCookie, setCookie } from "hono/cookie";
 
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 import { validator } from "../lib";
 import { ResponseFactory } from "../utils";
