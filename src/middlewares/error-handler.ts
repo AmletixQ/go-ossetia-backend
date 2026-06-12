@@ -5,6 +5,8 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { ResponseFactory, HttpError } from "../utils";
 
 export const errorHandler: ErrorHandler = (err, ctx) => {
+  console.log(err);
+  
   if (err instanceof HttpError) {
     console.log("HTTP error");
     return ResponseFactory[err.responseFactoryMethod](ctx, err.message);
