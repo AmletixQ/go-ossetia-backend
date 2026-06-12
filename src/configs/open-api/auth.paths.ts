@@ -31,7 +31,7 @@ export const authPaths = {
       },
     },
   },
-  "auth/verify-email": {
+  "/auth/verify-email": {
     post: {
       tags: ["Auth"],
       summary: "Подтверждение email.",
@@ -50,9 +50,9 @@ export const authPaths = {
               type: "object",
               properties: {
                 email: { type: "string", format: "email" },
-                token: { type: "string" },
+                code: { type: "string" },
               },
-              required: ["email", "token"],
+              required: ["email", "code"],
             },
           },
         },
