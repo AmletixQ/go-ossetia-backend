@@ -56,21 +56,27 @@ interface AuthService {
 
 export const authService: AuthService = {
   async register({ email, password, firstName, lastName }) {
-    const isExistUser = await prisma.user.findUnique({ where: { email } });
+    const verifiedUser = await prisma.user.findFirst({
+      where: { email, isEmailVerified: true },
+    });
 
-    if (isExistUser)
+    if (verifiedUser)
       throw new ConflictError(
         "Пользователь с таким email-адресом уже существует",
       );
 
     const hashedPassword = await hash(password);
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-      },
+    const userData = {
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+    };
+
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: userData,
+      create: { ...userData, isEmailVerified: false },
     });
 
     await tokenService.generateOrRefreshTokenAndSendEmail(

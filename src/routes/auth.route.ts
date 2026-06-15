@@ -44,6 +44,8 @@ auth.post("/login", validator("json", loginSchema), async (ctx) => {
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
+
+    isEmailVerified: user.isEmailVerified,
   };
 
   return ResponseFactory.success(ctx, response);
