@@ -1,3 +1,4 @@
+import { hash } from "argon2";
 import { User } from "../generated/prisma/client";
 import { prisma } from "../lib";
 
@@ -6,7 +7,6 @@ interface UsersService {
   getById(id: string): Promise<User | null>;
   getByEmail(email: string): Promise<User | null>;
 
-  create(data: Omit<User, "id">): Promise<User>;
   update(id: string, data: Partial<Omit<User, "id">>): Promise<User | null>;
   delete(id: string): Promise<User | null>;
 }
@@ -24,11 +24,9 @@ export const usersService: UsersService = {
     return await prisma.user.findUnique({ where: { email } });
   },
 
-  async create(data) {
-    return await prisma.user.create({ data });
-  },
-
   async update(id, data) {
+    if (data.password) data.password = await hash(data.password);
+
     return await prisma.user.update({ where: { id }, data });
   },
 

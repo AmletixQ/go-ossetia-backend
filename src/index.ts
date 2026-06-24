@@ -3,7 +3,7 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 
-import { auth, events } from "./routes";
+import { auth, events, users } from "./routes";
 import { errorHandler } from "./middlewares";
 import { HOME_TEMPLATE, OPEN_API_CONFIG } from "./configs";
 
@@ -18,6 +18,7 @@ app.get("/open-api", swaggerUI({ title: "Go Ossetia API", url: "/api/doc" }));
 
 app.route("/auth", auth);
 app.route("/events", events);
+app.route("/users", users);
 
 serve(
   {

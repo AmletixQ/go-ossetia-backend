@@ -1,4 +1,4 @@
-import { ResponseFactoryMethod } from "./response-factory";
+import { ResponseFactoryMethod } from "./response.factory";
 
 export class HttpError extends Error {
   responseFactoryMethod: ResponseFactoryMethod = "internal";

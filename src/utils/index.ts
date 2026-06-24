@@ -3,7 +3,9 @@ import generateOTP from "./generate-otp";
 import {
   ResponseFactory,
   type ResponseFactoryMethod,
-} from "./response-factory";
+} from "./response.factory";
+
+import { ResponseFormats } from "./response.formats";
 
 import {
   HttpError,
@@ -19,6 +21,7 @@ import {
 export {
   generateOTP,
   ResponseFactory,
+  ResponseFormats,
   ResponseFactoryMethod,
   HttpError,
   BadRequestError,
