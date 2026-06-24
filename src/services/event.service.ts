@@ -31,6 +31,12 @@ interface EventService {
     data: z.infer<typeof eventUpdateSchema>,
   ): Promise<EventModel | null>;
   deleteEvent(id: string): Promise<boolean>;
+
+  favoriteEvent(eventId: string, userId: string): Promise<void>;
+  unfavoriteEvent(eventId: string, userId: string): Promise<void>;
+
+  followEvent(eventId: string, userId: string): Promise<void>;
+  unfollowEvent(eventId: string, userId: string): Promise<void>;
 }
 export const eventService: EventService = {
   getEvents: async () => await prisma.event.findMany(),
@@ -128,5 +134,89 @@ export const eventService: EventService = {
       skip: (page - 1) * limit,
       take: limit,
     });
+  },
+
+  async favoriteEvent(eventId, userId) {
+    await prisma.$transaction([
+      prisma.event.update({
+        where: { id: eventId },
+        data: {
+          favoritedUsers: {
+            connect: { id: userId },
+          },
+        },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          favouritedEvents: {
+            connect: { id: eventId },
+          },
+        },
+      }),
+    ]);
+  },
+
+  async unfavoriteEvent(eventId, userId) {
+    await prisma.$transaction([
+      prisma.event.update({
+        where: { id: eventId },
+        data: {
+          favoritedUsers: {
+            disconnect: { id: userId },
+          },
+        },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          favouritedEvents: {
+            disconnect: { id: eventId },
+          },
+        },
+      }),
+    ]);
+  },
+
+  async followEvent(eventId, userId) {
+    await prisma.$transaction([
+      prisma.event.update({
+        where: { id: eventId },
+        data: {
+          followedUsers: {
+            connect: { id: userId },
+          },
+        },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          followingEvents: {
+            connect: { id: eventId },
+          },
+        },
+      }),
+    ]);
+  },
+
+  async unfollowEvent(eventId, userId) {
+    await prisma.$transaction([
+      prisma.event.update({
+        where: { id: eventId },
+        data: {
+          followedUsers: {
+            disconnect: { id: userId },
+          },
+        },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          followingEvents: {
+            disconnect: { id: eventId },
+          },
+        },
+      }),
+    ]);
   },
 };

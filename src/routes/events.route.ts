@@ -91,8 +91,46 @@ events.delete(
   },
 );
 
-events.post("/:id/favorite");
-events.post("/:id/unfavorite");
+events.post("/:id/favourite", auth(), async (ctx) => {
+  const userId = ctx.get("userId");
+  const eventId = ctx.req.param("id");
 
-events.post("/:id/follow");
-events.post("/:id/unfollow");
+  await eventService.favoriteEvent(eventId!, userId);
+
+  return ResponseFactory.success(ctx, {
+    message: "Мероприятие добавлено в избранное",
+  });
+});
+
+events.post("/:id/unfavourite", auth(), async (ctx) => {
+  const userId = ctx.get("userId");
+  const eventId = ctx.req.param("id");
+
+  await eventService.unfavoriteEvent(eventId!, userId);
+
+  return ResponseFactory.success(ctx, {
+    message: "Мероприятие удалено из избранного",
+  });
+});
+
+events.post("/:id/follow", auth(), async (ctx) => {
+  const userId = ctx.get("userId");
+  const eventId = ctx.req.param("id");
+
+  await eventService.followEvent(eventId!, userId);
+
+  return ResponseFactory.success(ctx, {
+    message: "Вы подписались на мероприятие",
+  });
+});
+
+events.post("/:id/unfollow", auth(), async (ctx) => {
+  const userId = ctx.get("userId");
+  const eventId = ctx.req.param("id");
+
+  await eventService.unfollowEvent(eventId!, userId);
+
+  return ResponseFactory.success(ctx, {
+    message: "Вы отписались от мероприятия",
+  });
+});

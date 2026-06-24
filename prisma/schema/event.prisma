@@ -17,7 +17,9 @@ model Event {
   maxAge Int @default(100) @map("max_age")
 
   categories EventCategory[]
-  users      User[]          @relation(name: "EventsUsers")
+
+  favoritedUsers User[] @relation(name: "EventsUsers")
+  followedUsers  User[] @relation("EventsFollowers")
 
   owner   User   @relation(fields: [ownerId], references: [id], name: "EventsOwner")
   ownerId String
