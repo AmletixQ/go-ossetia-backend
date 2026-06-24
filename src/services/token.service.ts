@@ -2,6 +2,7 @@ import { AUTH_CONFIG } from "../configs";
 import { TokenType } from "../generated/prisma/enums";
 
 import { prisma, sendPasswordResetEmail, sendVerificationEmail } from "../lib";
+import { EMAIL_SENDERS } from "../lib/email";
 
 import {
   generateOTP,
@@ -65,13 +66,8 @@ export const tokenService: TokenService = {
     const otp = generateOTP(6);
     const expiresAt = new Date(now.getTime() + AUTH_CONFIG.OTP.EXPIRES_MINUTES);
 
-    if (type === "EMAIL_VERIFICATION") {
-      await sendVerificationEmail(email, otp);
-    } else if (type === "PASSWORD_RESET") {
-      await sendPasswordResetEmail(email, otp);
-    } else {
-      throw new NotFoundError(`Неизвестный тип токена: ${type}`);
-    }
+
+    EMAIL_SENDERS[type](email, otp);
 
     await prisma.token.upsert({
       where: { email_type: { email, type } },

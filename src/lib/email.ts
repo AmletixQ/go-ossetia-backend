@@ -1,5 +1,6 @@
 import { createTransport, type SendMailOptions } from "nodemailer";
 import { EMAIL_TEMPLATES } from "../configs";
+import { TokenType } from "../generated/prisma/enums";
 
 interface EmailOptions {
   to: string | string[];
@@ -47,7 +48,7 @@ export async function sendEmail(options: EmailOptions) {
   }
 }
 
-export async function sendVerificationEmail(to: string, otp: string) {
+async function sendVerificationEmail(to: string, otp: string) {
   await sendEmail({
     to,
     subject: `Ваш код подтверждения - ${otp}`,
@@ -56,7 +57,7 @@ export async function sendVerificationEmail(to: string, otp: string) {
   });
 }
 
-export async function sendPasswordResetEmail(to: string, otp: string) {
+async function sendPasswordResetEmail(to: string, otp: string) {
   await sendEmail({
     to,
     subject: `Код для сброса пароля — ${otp}`,
@@ -64,3 +65,18 @@ export async function sendPasswordResetEmail(to: string, otp: string) {
     html: EMAIL_TEMPLATES.PASSWORD_RESET(otp),
   });
 }
+
+async function sendEmailChangeVerification(to: string, otp: string) {}
+async function sendMagicLink(to: string, otp: string) {}
+async function sendTwoFactorEmail(to: string, otp: string) {}
+
+export const EMAIL_SENDERS: Record<
+  TokenType,
+  (to: string, otp: string) => Promise<void>
+> = {
+  [TokenType.EMAIL_VERIFICATION]: sendVerificationEmail,
+  [TokenType.PASSWORD_RESET]: sendPasswordResetEmail,
+  [TokenType.EMAIL_CHANGE]: sendEmailChangeVerification,
+  [TokenType.MAGIC_LINK]: sendMagicLink,
+  [TokenType.TWO_FACTOR]: sendTwoFactorEmail,
+};
