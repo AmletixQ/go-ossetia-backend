@@ -1,8 +1,4 @@
-import {
-  sendEmail,
-  sendVerificationEmail,
-  sendPasswordResetEmail,
-} from "./email";
+import { sendEmail } from "./email";
 import {
   geocodeAddress,
   type GeocodeResult,
@@ -16,8 +12,6 @@ export {
   prisma,
   validator,
   sendEmail,
-  sendVerificationEmail,
-  sendPasswordResetEmail,
   geocodeAddress,
   GeocodeResult,
   AddressNotFoundError,
